@@ -95,10 +95,20 @@ def store_food_data(
             filename=image_id,
         )
         
-        image_bytes = result.inline_data.data
-        mime_type = result.inline_data.mime_type
-        # Use Gemini to extract food/nutrition
-        food_items, nutrition_summary = extract_food_and_nutrition_from_image(image_bytes, mime_type)
+        image_bytes = None
+        mime_type = None
+        food_items = []
+        nutrition_summary = {}
+
+        if result is None:
+            print(f"DEBUG: artifact_service.load_artifact returned None for image_id: {image_id}")
+        elif result.inline_data is None:
+            print(f"DEBUG: result.inline_data is None for image_id: {image_id}")
+        else:
+            image_bytes = result.inline_data.data
+            mime_type = result.inline_data.mime_type
+            # Use Gemini to extract food/nutrition
+            food_items, nutrition_summary = extract_food_and_nutrition_from_image(image_bytes, mime_type)
         # Create embedding for vector search
         embed_result = GENAI_CLIENT.models.embed_content(
             model="text-embedding-004",
