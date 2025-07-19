@@ -1,6 +1,6 @@
 # diet_tracker_agent/agent.py
 
-from google.adk.agents import Agent
+from google.adk.agents import LlmAgent
 from diet_tracker_agent.tools import (
     store_food_data,
     search_food_by_time,
@@ -24,9 +24,9 @@ prompt_path = os.path.join(current_dir, "task_prompt.md")
 with open(prompt_path, "r") as file:
     task_prompt = file.read()
 
-root_agent = Agent(
+root_agent = LlmAgent(
     name="diet_tracker_agent",
-    model="gemini-2.5-flash",
+    model="gemini-1.5-flash-001",
     description=(
         "Personal diet tracker agent to help users track their food intake, analyze meals, calculate calories and nutrition, and answer dietary queries."
     ),
@@ -37,10 +37,5 @@ root_agent = Agent(
         search_food_by_time,
         search_relevant_food_by_natural_language_query,
     ],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(
-            thinking_budget=2048,
-        )
-    ),
     before_model_callback=modify_image_data_in_history,
 )

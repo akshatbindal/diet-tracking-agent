@@ -1,4 +1,4 @@
-from expense_manager_agent.agent import root_agent as expense_manager_agent
+from diet_tracker_agent.agent import root_agent as diet_tracker_agent
 from google.adk.sessions import InMemorySessionService
 from google.adk.runners import Runner
 from google.adk.events import Event
@@ -20,7 +20,7 @@ from google.adk.artifacts import GcsArtifactService
 from settings import get_settings
 
 SETTINGS = get_settings()
-APP_NAME = "expense_manager_app"
+APP_NAME = "diet_tracker_app"
 
 
 # Application state to hold service contexts
@@ -29,7 +29,7 @@ class AppContexts(SimpleNamespace):
 
     session_service: InMemorySessionService = None
     artifact_service: GcsArtifactService = None
-    expense_manager_agent_runner: Runner = None
+    diet_tracker_agent_runner: Runner = None
 
 
 # Initialize application state
@@ -43,8 +43,8 @@ async def lifespan(app: FastAPI):
     app_contexts.artifact_service = GcsArtifactService(
         bucket_name=SETTINGS.STORAGE_BUCKET_NAME
     )
-    app_contexts.expense_manager_agent_runner = Runner(
-        agent=expense_manager_agent,  # The agent we want to run
+    app_contexts.diet_tracker_agent_runner = Runner(
+        agent=diet_tracker_agent,  # The agent we want to run
         app_name=APP_NAME,  # Associates runs with our app
         session_service=app_contexts.session_service,  # Uses our session manager
         artifact_service=app_contexts.artifact_service,  # Uses our artifact manager
@@ -98,7 +98,7 @@ async def chat(
         # Process the message with the agent
         # Type annotation: runner.run_async returns an AsyncIterator[Event]
         events_iterator: AsyncIterator[Event] = (
-            app_context.expense_manager_agent_runner.run_async(
+            app_context.diet_tracker_agent_runner.run_async(
                 user_id=user_id, session_id=session_id, new_message=content
             )
         )
