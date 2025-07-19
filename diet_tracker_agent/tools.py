@@ -1,7 +1,7 @@
 # diet_tracker_agent/tools.py
 
 import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from google.cloud import firestore
 from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1 import FieldFilter
@@ -53,7 +53,7 @@ def extract_food_and_nutrition_from_image(image_bytes: bytes, mime_type: str) ->
     image_part = genai.types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
     contents = genai.types.Content(role="user", parts=[image_part, genai.types.Part.from_text(prompt)])
     response = GENAI_CLIENT.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-1.5-flash-001",
         contents=contents,
         config=genai.types.GenerateContentConfig(system_instruction=prompt),
     )
@@ -71,7 +71,7 @@ def extract_food_and_nutrition_from_image(image_bytes: bytes, mime_type: str) ->
 def store_food_data(
     image_id: str,
     user_id: str,
-    timestamp: str = None,
+    timestamp: Optional[str] = None,
 ) -> str:
     """
     Store food data in the database. Fetches image from artifact storage using image_id and user_id. Uses Gemini to extract food/nutrition from image.
@@ -84,7 +84,7 @@ def store_food_data(
     """
     try:
         image_id = sanitize_image_id(image_id)
-        if not timestamp:
+        if timestamp is None:
             timestamp = datetime.datetime.utcnow().isoformat() + "Z"
         # Check if already exists
         doc = get_food_data_by_image_id(image_id)
