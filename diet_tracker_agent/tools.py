@@ -53,7 +53,7 @@ def extract_food_and_nutrition_from_image(image_bytes: bytes, mime_type: str) ->
     image_part = genai.types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
     contents = genai.types.Content(role="user", parts=[image_part, genai.types.Part.from_text(prompt)])
     response = GENAI_CLIENT.models.generate_content(
-        model="gemini-1.5-flash-001",
+        model="gemini-2.5-flash",
         contents=contents,
         config=genai.types.GenerateContentConfig(system_instruction=prompt),
     )
@@ -86,10 +86,7 @@ def store_food_data(
         image_id = sanitize_image_id(image_id)
         if timestamp is None:
             timestamp = datetime.datetime.utcnow().isoformat() + "Z"
-        # Check if already exists
-        doc = get_food_data_by_image_id(image_id)
-        if doc:
-            return f"Meal with ID {image_id} already exists"
+        
         # Fetch image bytes and mime type from artifact storage
         result = artifact_service.load_artifact(
             app_name=APP_NAME,
@@ -97,8 +94,7 @@ def store_food_data(
             session_id=DEFAULT_SESSION_ID,
             filename=image_id,
         )
-        if not result or not result.inline_data:
-            raise Exception(f"Image artifact {image_id} not found for user {user_id}.")
+        
         image_bytes = result.inline_data.data
         mime_type = result.inline_data.mime_type
         # Use Gemini to extract food/nutrition

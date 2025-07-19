@@ -26,7 +26,7 @@ with open(prompt_path, "r") as file:
 
 root_agent = LlmAgent(
     name="diet_tracker_agent",
-    model="gemini-1.5-flash-001",
+    model="gemini-2.5-flash",
     description=(
         "Personal diet tracker agent to help users track their food intake, analyze meals, calculate calories and nutrition, and answer dietary queries."
     ),
