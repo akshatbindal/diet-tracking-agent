@@ -20,6 +20,11 @@ GENAI_CLIENT = genai.Client(vertexai=True, location=SETTINGS.GCLOUD_LOCATION, pr
 EMBEDDING_DIMENSION = 768
 EMBEDDING_FIELD_NAME = "embedding"
 
+# Module-level globals for artifact service and app/session names
+artifact_service = GcsArtifactService(bucket_name=SETTINGS.STORAGE_BUCKET_NAME)
+APP_NAME = SETTINGS.DB_COLLECTION_NAME  # Or use a dedicated app name if needed
+DEFAULT_SESSION_ID = "default_session"
+
 FOOD_DESC_FORMAT = """
 Food Items: {food_items}
 Timestamp: {timestamp}
@@ -66,19 +71,13 @@ def extract_food_and_nutrition_from_image(image_bytes: bytes, mime_type: str) ->
 def store_food_data(
     image_id: str,
     user_id: str,
-    artifact_service: GcsArtifactService,
-    app_name: str,
-    session_id: str = "default_session",
     timestamp: str = None,
 ) -> str:
     """
-    Store food data in the database. Fetches image from artifact storage using image_id, user_id, session_id, and app_name. Uses Gemini to extract food/nutrition from image.
+    Store food data in the database. Fetches image from artifact storage using image_id and user_id. Uses Gemini to extract food/nutrition from image.
     Args:
         image_id (str): Unique image identifier.
         user_id (str): User identifier.
-        artifact_service (GcsArtifactService): Artifact service to fetch image.
-        app_name (str): Application name for artifact storage.
-        session_id (str): Session identifier (default: "default_session").
         timestamp (str, optional): ISO format timestamp. If None, uses current UTC time.
     Returns:
         str: Success message with image_id.
@@ -93,9 +92,9 @@ def store_food_data(
             return f"Meal with ID {image_id} already exists"
         # Fetch image bytes and mime type from artifact storage
         result = artifact_service.load_artifact(
-            app_name=app_name,
+            app_name=APP_NAME,
             user_id=user_id,
-            session_id=session_id,
+            session_id=DEFAULT_SESSION_ID,
             filename=image_id,
         )
         if not result or not result.inline_data:
