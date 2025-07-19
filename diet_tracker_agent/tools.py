@@ -9,6 +9,9 @@ from google.cloud.firestore_v1.base_query import And
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 from settings import get_settings
 from google import genai
+from google.adk.artifacts import GcsArtifactService
+import base64
+import logger
 
 SETTINGS = get_settings()
 DB_CLIENT = firestore.Client(project=SETTINGS.GCLOUD_PROJECT_ID)
@@ -62,18 +65,20 @@ def extract_food_and_nutrition_from_image(image_bytes: bytes, mime_type: str) ->
 
 def store_food_data(
     image_id: str,
-    image_bytes: bytes,
-    mime_type: str,
     user_id: str,
+    artifact_service: GcsArtifactService,
+    app_name: str,
+    session_id: str = "default_session",
     timestamp: str = None,
 ) -> str:
     """
-    Store food data in the database. Uses Gemini to extract food/nutrition from image.
+    Store food data in the database. Fetches image from artifact storage using image_id, user_id, session_id, and app_name. Uses Gemini to extract food/nutrition from image.
     Args:
         image_id (str): Unique image identifier.
-        image_bytes (bytes): Raw image data.
-        mime_type (str): MIME type of the image.
         user_id (str): User identifier.
+        artifact_service (GcsArtifactService): Artifact service to fetch image.
+        app_name (str): Application name for artifact storage.
+        session_id (str): Session identifier (default: "default_session").
         timestamp (str, optional): ISO format timestamp. If None, uses current UTC time.
     Returns:
         str: Success message with image_id.
@@ -86,10 +91,21 @@ def store_food_data(
         doc = get_food_data_by_image_id(image_id)
         if doc:
             return f"Meal with ID {image_id} already exists"
+        # Fetch image bytes and mime type from artifact storage
+        result = artifact_service.load_artifact(
+            app_name=app_name,
+            user_id=user_id,
+            session_id=session_id,
+            filename=image_id,
+        )
+        if not result or not result.inline_data:
+            raise Exception(f"Image artifact {image_id} not found for user {user_id}.")
+        image_bytes = result.inline_data.data
+        mime_type = result.inline_data.mime_type
         # Use Gemini to extract food/nutrition
         food_items, nutrition_summary = extract_food_and_nutrition_from_image(image_bytes, mime_type)
         # Create embedding for vector search
-        result = GENAI_CLIENT.models.embed_content(
+        embed_result = GENAI_CLIENT.models.embed_content(
             model="text-embedding-004",
             contents=FOOD_DESC_FORMAT.format(
                 food_items=food_items,
@@ -99,7 +115,7 @@ def store_food_data(
                 user_id=user_id,
             ),
         )
-        embedding = result.embeddings[0].values
+        embedding = embed_result.embeddings[0].values
         doc = {
             "image_id": image_id,
             "user_id": user_id,
